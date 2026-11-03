@@ -1,0 +1,11 @@
+{
+  "name": "tiny-strings",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Zero-dependency string helpers used as the ticket-delivery demo target.",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "node test/run-tests.js"
+  },
+  "license": "MIT"
+}
