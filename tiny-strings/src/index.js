@@ -1,12 +1,17 @@
 // tiny-strings: string helpers used by the delivery-pipeline demo.
 // Zero dependencies, pure Node.js, so any teammate can run the tests.
 
-/** slugify('Hello World!') -> 'hello-world' */
+/**
+ * slugify('Hello World!') -> 'hello-world'
+ * Non-alphanumeric runs collapse to a single '-', and leading/trailing
+ * separators are stripped, so punctuation-only input yields ''.
+ */
 function slugify(input) {
   return String(input)
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-');
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
 /** truncate('abcdef', 4) -> 'abc\u2026' */
