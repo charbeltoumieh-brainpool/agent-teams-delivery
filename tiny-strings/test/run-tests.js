@@ -43,6 +43,32 @@ test('truncate never exceeds maxLength + 1 chars (#2)', () => {
 test('capitalize', () => assert.strictEqual(capitalize('hello world'), 'Hello world'));
 test('wordCount empty', () => assert.strictEqual(wordCount(''), 0));
 test('wordCount spaces', () => assert.strictEqual(wordCount('  a  b   c '), 3));
+// ticket #6: punctuation-only tokens must not be counted as words
+// rule: split on /\s+/, drop tokens with no Unicode letter/number (\p{L}/\p{N})
+test('wordCount ignores punctuation-only token (#6)', () => assert.strictEqual(wordCount('hi   ,   there'), 2));
+test('wordCount punctuation-only input -> 0 (#6)', () => assert.strictEqual(wordCount('!!!'), 0));
+test('wordCount whitespace-only input -> 0 (#6)', () => assert.strictEqual(wordCount('   '), 0));
+test('wordCount mixed words and punctuation-only tokens (#6)', () =>
+  assert.strictEqual(wordCount('  one ,  two . -- three  '), 3));
+test('wordCount keeps tokens that mix letters and punctuation (#6)', () =>
+  assert.strictEqual(wordCount('hello! world?'), 2));
+test('wordCount hyphenated/apostrophe words count once (#6)', () =>
+  assert.strictEqual(wordCount("well-known don't"), 2));
+test('wordCount digits count as words (#6)', () => assert.strictEqual(wordCount('v2 , 3'), 2));
+// ticket #6 re-QA regression guard: the punctuation rule must be Unicode-aware,
+// so non-Latin-script words are NOT dropped as punctuation (they were 0 when the
+// rule was ASCII-only, while origin/main returned 2).
+test('wordCount CJK words are counted (#6)', () => assert.strictEqual(wordCount('你好 世界'), 2));
+test('wordCount Cyrillic words are counted (#6)', () => assert.strictEqual(wordCount('привет мир'), 2));
+test('wordCount Greek/Arabic/Hangul words are counted (#6)', () =>
+  assert.strictEqual(wordCount('γειά σου  مرحبا بالعالم  안녕 하세요'), 6));
+test('wordCount non-Latin mixed with punctuation-only tokens (#6)', () =>
+  assert.strictEqual(wordCount('你好 , 世界 !!!'), 2));
+test('wordCount emoji-only token -> 0 (#6)', () => assert.strictEqual(wordCount('😀 🎉'), 0));
+test('wordCount punctuation-only non-ASCII -> 0 (#6)', () =>
+  assert.strictEqual(wordCount('！！！ 。。。'), 0));
+test('wordCount emoji mixed with words (#6)', () =>
+  assert.strictEqual(wordCount('hello 😀 world'), 2));
 
 console.log(`${passed} passed, ${failures.length} failed`);
 for (const failure of failures) console.log(`FAIL: ${failure.name} -> ${failure.message}`);
