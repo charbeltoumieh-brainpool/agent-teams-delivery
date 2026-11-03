@@ -65,4 +65,28 @@ function wordCount(input) {
     .filter((token) => token.length > 0 && !PUNCTUATION_ONLY_TOKEN.test(token)).length;
 }
 
-module.exports = { slugify, truncate, capitalize, wordCount };
+/**
+ * isPalindrome('A man, a plan, a canal: Panama') -> true
+ * Comparison is case-insensitive and ignores every non-alphanumeric
+ * character. Alphanumeric detection is Unicode-aware (\p{L} letters and
+ * \p{N} numbers), so accented and non-Latin scripts are handled too, and
+ * empty / punctuation-only input is considered a palindrome.
+ * Non-string input is coerced with String(input), matching the convention
+ * used by the other helpers (slugify, truncate, capitalize, wordCount);
+ * null / undefined therefore become 'null' / 'undefined' rather than throwing.
+ */
+function isPalindrome(input) {
+  const normalized = String(input)
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, '');
+  let left = 0;
+  let right = normalized.length - 1;
+  while (left < right) {
+    if (normalized[left] !== normalized[right]) return false;
+    left++;
+    right--;
+  }
+  return true;
+}
+
+module.exports = { slugify, truncate, capitalize, wordCount, isPalindrome };

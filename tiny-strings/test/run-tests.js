@@ -1,6 +1,6 @@
 // Basic test harness for tiny-strings. No dependencies.
 const assert = require('node:assert');
-const { slugify, truncate, capitalize, wordCount } = require('../src/index.js');
+const { slugify, truncate, capitalize, wordCount, isPalindrome } = require('../src/index.js');
 
 let passed = 0;
 const failures = [];
@@ -69,6 +69,27 @@ test('wordCount punctuation-only non-ASCII -> 0 (#6)', () =>
   assert.strictEqual(wordCount('！！！ 。。。'), 0));
 test('wordCount emoji mixed with words (#6)', () =>
   assert.strictEqual(wordCount('hello 😀 world'), 2));
+
+// ticket #3: isPalindrome ignores case and non-alphanumerics; Unicode-aware (\p{L}\p{N}), not ASCII-only
+test('isPalindrome ignores case + punctuation (#3)', () => assert.strictEqual(isPalindrome('A man, a plan, a canal: Panama'), true));
+test('isPalindrome returns false for non-palindrome (#3)', () => assert.strictEqual(isPalindrome('hello'), false));
+test('isPalindrome empty string -> true (#3)', () => assert.strictEqual(isPalindrome(''), true));
+test('isPalindrome numeric string true (#3)', () => assert.strictEqual(isPalindrome('12321'), true));
+test('isPalindrome numeric string false (#3)', () => assert.strictEqual(isPalindrome('12345'), false));
+test('isPalindrome punctuation-only -> true (#3)', () => assert.strictEqual(isPalindrome('!!! ... ---'), true));
+test('isPalindrome single char -> true (#3)', () => assert.strictEqual(isPalindrome('x'), true));
+test('isPalindrome unicode case fold (#3)', () => assert.strictEqual(isPalindrome('ÄbBä'), true));
+test('isPalindrome accented non-palindrome (#3)', () => assert.strictEqual(isPalindrome('Élu par cette crapule'), false));
+// unicode-aware filter proof: accented letters survive and are compared, they are not stripped
+// (an ASCII-only filter would strip them, yielding '' -> true)
+test('isPalindrome accented input is compared, not stripped (#3)', () => assert.strictEqual(isPalindrome('éàb'), false));
+// regression guard: ASCII-only filtering would drop non-Latin letters entirely
+test('isPalindrome non-Latin (Cyrillic) palindrome (#3)', () => assert.strictEqual(isPalindrome('А роза упала на лапу Азора'), true));
+test('isPalindrome non-Latin (Cyrillic) non-palindrome (#3)', () => assert.strictEqual(isPalindrome('привет'), false));
+test('isPalindrome digits + letters mixed false (#3)', () => assert.strictEqual(isPalindrome('a1b2c'), false));
+// documented non-string rule: String(input) coercion, same as the other helpers
+test('isPalindrome non-string coerced via String(input) (#3)', () => assert.strictEqual(isPalindrome(12321), true));
+test('isPalindrome null coerces to "null" (#3)', () => assert.strictEqual(isPalindrome(null), false));
 
 console.log(`${passed} passed, ${failures.length} failed`);
 for (const failure of failures) console.log(`FAIL: ${failure.name} -> ${failure.message}`);
