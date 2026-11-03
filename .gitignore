@@ -1,0 +1,5 @@
+﻿# tiny-strings demo target (Node 24, zero dependencies)
+node_modules/
+*.log
+reports/scratch/
+
