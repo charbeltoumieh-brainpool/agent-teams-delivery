@@ -35,11 +35,32 @@ function capitalize(input) {
   return value[0].toUpperCase() + value.slice(1);
 }
 
-/** wordCount('a b c') -> 3 */
+/**
+ * wordCount('a b c') -> 3
+ *
+ * Tokenisation rule (documented for ticket #6):
+ *   1. The input is split on runs of whitespace (/\s+/) after trimming.
+ *   2. A token counts as a word only if it contains at least one
+ *      alphanumeric character ([A-Za-z0-9]) -- tokens made up purely of
+ *      punctuation are dropped instead of counted.
+ *
+ * Consequences of that rule:
+ *   - punctuation-only tokens are never words: 'hi   ,   there' -> 2, '!!!' -> 0.
+ *   - Hyphens and apostrophes are NOT split: 'well-known' -> 1,
+ *     "don't" -> 1 (an internal hyphen/apostrophe is not whitespace, so the
+ *     token stays whole as long as it also holds an alphanumeric char).
+ *   - A token that mixes letters and punctuation still counts once:
+ *     'hello!' -> 1.
+ *   - Whitespace-only or empty input -> 0.
+ */
+const PUNCTUATION_ONLY_TOKEN = /^[^A-Za-z0-9]+$/;
+
 function wordCount(input) {
   const trimmed = String(input).trim();
   if (!trimmed) return 0;
-  return trimmed.split(/\s+/).length;
+  return trimmed
+    .split(/\s+/)
+    .filter((token) => token.length > 0 && !PUNCTUATION_ONLY_TOKEN.test(token)).length;
 }
 
 module.exports = { slugify, truncate, capitalize, wordCount };

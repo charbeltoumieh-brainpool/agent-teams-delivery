@@ -43,6 +43,18 @@ test('truncate never exceeds maxLength + 1 chars (#2)', () => {
 test('capitalize', () => assert.strictEqual(capitalize('hello world'), 'Hello world'));
 test('wordCount empty', () => assert.strictEqual(wordCount(''), 0));
 test('wordCount spaces', () => assert.strictEqual(wordCount('  a  b   c '), 3));
+// ticket #6: punctuation-only tokens must not be counted as words
+// rule: split on /\s+/, drop tokens with no [A-Za-z0-9] character
+test('wordCount ignores punctuation-only token (#6)', () => assert.strictEqual(wordCount('hi   ,   there'), 2));
+test('wordCount punctuation-only input -> 0 (#6)', () => assert.strictEqual(wordCount('!!!'), 0));
+test('wordCount whitespace-only input -> 0 (#6)', () => assert.strictEqual(wordCount('   '), 0));
+test('wordCount mixed words and punctuation-only tokens (#6)', () =>
+  assert.strictEqual(wordCount('  one ,  two . -- three  '), 3));
+test('wordCount keeps tokens that mix letters and punctuation (#6)', () =>
+  assert.strictEqual(wordCount('hello! world?'), 2));
+test('wordCount hyphenated/apostrophe words count once (#6)', () =>
+  assert.strictEqual(wordCount("well-known don't"), 2));
+test('wordCount digits count as words (#6)', () => assert.strictEqual(wordCount('v2 , 3'), 2));
 
 console.log(`${passed} passed, ${failures.length} failed`);
 for (const failure of failures) console.log(`FAIL: ${failure.name} -> ${failure.message}`);
