@@ -40,12 +40,14 @@ function capitalize(input) {
  *
  * Tokenisation rule (documented for ticket #6):
  *   1. The input is split on runs of whitespace (/\s+/) after trimming.
- *   2. A token counts as a word only if it contains at least one
- *      alphanumeric character ([A-Za-z0-9]) -- tokens made up purely of
+ *   2. A token counts as a word only if it contains at least one Unicode
+ *      letter or number (\p{L} or \p{N}) -- tokens made up purely of
  *      punctuation are dropped instead of counted.
  *
  * Consequences of that rule:
  *   - punctuation-only tokens are never words: 'hi   ,   there' -> 2, '!!!' -> 0.
+ *   - Script-agnostic: any Unicode letter/digit counts, so non-Latin input
+ *     works too: '你好 世界' -> 2, 'привет мир' -> 2, '123' -> 1.
  *   - Hyphens and apostrophes are NOT split: 'well-known' -> 1,
  *     "don't" -> 1 (an internal hyphen/apostrophe is not whitespace, so the
  *     token stays whole as long as it also holds an alphanumeric char).
@@ -53,7 +55,7 @@ function capitalize(input) {
  *     'hello!' -> 1.
  *   - Whitespace-only or empty input -> 0.
  */
-const PUNCTUATION_ONLY_TOKEN = /^[^A-Za-z0-9]+$/;
+const PUNCTUATION_ONLY_TOKEN = /^[^\p{L}\p{N}]+$/u;
 
 function wordCount(input) {
   const trimmed = String(input).trim();
