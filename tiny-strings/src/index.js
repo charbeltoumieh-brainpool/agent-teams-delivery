@@ -14,11 +14,18 @@ function slugify(input) {
     .replace(/^-+|-+$/g, '');
 }
 
-/** truncate('abcdef', 4) -> 'abc\u2026' */
+/**
+ * truncate('abcdef', 4) -> 'abc\u2026'
+ * At most `maxLength` characters are kept before the ellipsis is appended,
+ * so the result never exceeds maxLength + 1 characters.
+ * Truncating to 0 (or a negative length) yields just the ellipsis, and input
+ * that already fits in maxLength is returned unchanged.
+ */
 function truncate(input, maxLength) {
   const value = String(input);
-  if (value.length <= maxLength) return value;
-  return value.slice(0, maxLength) + '\u2026';
+  const limit = Math.max(0, Number(maxLength) || 0);
+  if (value.length <= limit) return value;
+  return value.slice(0, Math.max(0, limit - 1)) + '\u2026';
 }
 
 /** capitalize('hello world') -> 'Hello world' */
