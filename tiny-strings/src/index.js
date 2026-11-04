@@ -89,4 +89,62 @@ function isPalindrome(input) {
   return true;
 }
 
-module.exports = { slugify, truncate, capitalize, wordCount, isPalindrome };
+/**
+ * excerpt('the quick brown fox', 11) -> 'the quick\u2026'
+ *
+ * A word-boundary-aware wrapper around truncate(). The cut itself is delegated
+ * to truncate() so the ellipsis contract stays in ONE place (see #2): at most
+ * `maxLength` characters are kept before '\u2026', the ellipsis counts toward
+ * maxLength, maxLength 0 / negative yields just '\u2026', text that already
+ * fits is returned unchanged, and empty input returns ''.
+ *
+ * Word-boundary rule: when the text has to be cut, excerpt() looks for the last
+ * run of whitespace that starts before the cut point and ends the excerpt at
+ * the last word that fully fits. The separator run itself is dropped, so the
+ * result never ends with a dangling space ('the quick\u2026', never 'the \u2026').
+ * If no word boundary exists at all -- a single word longer than maxLength --
+ * there is nothing to respect, so excerpt() falls back to truncate()'s hard cut
+ * and returns a partial word (no throw, same length contract as truncate).
+ *
+ * Whitespace handling notes:
+ *   - leading whitespace is preserved verbatim, it is not part of the boundary
+ *     search (the cut only ever looks left of the cut point);
+ *   - multiple consecutive spaces do not produce extra separators because the
+ *     whole trailing whitespace run is replaced by the single ellipsis;
+ *   - punctuation-only text has no words, so it is treated as unbreakable: with
+ *     no whitespace it delegates straight to truncate()'s hard cut, and when it
+ *     does contain whitespace the separator run at the cut is still dropped, so
+ *     '!!! ... ---' with maxLength 5 yields '!!!\u2026' (never '!!! \u2026').
+ *
+ * Non-string input is coerced with String(input), matching the documented
+ * convention of the other helpers (slugify, truncate, capitalize, wordCount,
+ * isPalindrome); null / undefined become 'null' / 'undefined' rather than
+ * throwing, and a non-numeric maxLength is treated as 0 via truncate().
+ */
+function excerpt(input, maxLength) {
+  const value = String(input);
+  // Same normalisation the neighbours use, so excerpt and truncate agree on
+  // what an out-of-range / non-numeric maxLength means.
+  const limit = Math.max(0, Number(maxLength) || 0);
+
+  // Nothing to cut: identical to truncate()'s passthrough, no ellipsis.
+  if (value.length <= limit) return value;
+
+  // Look for the last whitespace run that begins before the cut point.
+  // `cap` is the number of characters that fit (the ellipsis occupies one).
+  const cap = Math.max(0, limit - 1);
+  const head = value.slice(0, cap);
+  const boundary = head.search(/\s+\S*$/);
+
+  if (boundary > 0) {
+    // Cut cleanly at the boundary and drop the separator run: no dangling space.
+    const wordPart = head.slice(0, boundary);
+    return wordPart.length ? wordPart + '\u2026' : truncate(value, limit);
+  }
+
+  // No usable word boundary (single long word, punctuation-only, or the first
+  // word itself overflows): fall back to truncate()'s documented hard cut.
+  return truncate(value, limit);
+}
+
+module.exports = { slugify, truncate, capitalize, wordCount, isPalindrome, excerpt };
