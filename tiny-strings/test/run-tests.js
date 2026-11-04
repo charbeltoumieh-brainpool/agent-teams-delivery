@@ -1,6 +1,6 @@
 // Basic test harness for tiny-strings. No dependencies.
 const assert = require('node:assert');
-const { slugify, truncate, capitalize, wordCount, isPalindrome, excerpt } = require('../src/index.js');
+const { slugify, truncate, capitalize, titleCase, wordCount, isPalindrome, excerpt } = require('../src/index.js');
 
 let passed = 0;
 const failures = [];
@@ -90,6 +90,73 @@ test('isPalindrome digits + letters mixed false (#3)', () => assert.strictEqual(
 // documented non-string rule: String(input) coercion, same as the other helpers
 test('isPalindrome non-string coerced via String(input) (#3)', () => assert.strictEqual(isPalindrome(12321), true));
 test('isPalindrome null coerces to "null" (#3)', () => assert.strictEqual(isPalindrome(null), false));
+// ticket #4: titleCase capitalises the first letter of every whitespace-delimited word
+// AC1 verbatim: titleCase('hello big world') === 'Hello Big World'
+test('titleCase basic (#4 AC1)', () => assert.strictEqual(titleCase('hello big world'), 'Hello Big World'));
+// AC2 verbatim: titleCase('  the  qa  engine  ') === 'The Qa Engine' (collapse whitespace)
+test('titleCase collapses whitespace (#4 AC2)', () => assert.strictEqual(titleCase('  the  qa  engine  '), 'The Qa Engine'));
+// AC3 verbatim: titleCase('') === ''
+test('titleCase empty string (#4 AC3)', () => assert.strictEqual(titleCase(''), ''));
+
+test('titleCase already capitalised is unchanged (#4)', () => assert.strictEqual(titleCase('Hello Big World'), 'Hello Big World'));
+test('titleCase single word (#4)', () => assert.strictEqual(titleCase('hello'), 'Hello'));
+test('titleCase single char (#4)', () => assert.strictEqual(titleCase('a'), 'A'));
+test('titleCase whitespace-only -> empty (#4)', () => assert.strictEqual(titleCase('   \t\n  '), ''));
+test('titleCase mixed case lowercases nothing, only first letter raised (#4)', () => {
+  assert.strictEqual(titleCase('hELLO wORLD'), 'HELLO WORLD');
+});
+test('titleCase preserves inner punctuation (#4)', () => assert.strictEqual(titleCase('hello, world!'), 'Hello, World!'));
+test('titleCase punctuation-only token keeps its shape (#4)', () => assert.strictEqual(titleCase('!!!'), '!!!'));
+test('titleCase punctuation-only run between words (#4)', () => assert.strictEqual(titleCase('hi   ,   there'), 'Hi , There'));
+test('titleCase digit-initial word is left as-is at that position (#4)', () => {
+  assert.strictEqual(titleCase('3d printing'), '3d Printing');
+});
+test('titleCase digits do not break words (#4)', () => assert.strictEqual(titleCase('version 2 beta'), 'Version 2 Beta'));
+// decision D1: whitespace is the only separator; hyphen/apostrophe are word-internal
+test('titleCase hyphenated word only raises the first letter (#4 D1)', () => {
+  assert.strictEqual(titleCase('well-known fact'), 'Well-known Fact');
+});
+test('titleCase apostrophe word only raises the first letter (#4 D1)', () => {
+  assert.strictEqual(titleCase("don't stop"), "Don't Stop");
+});
+test('titleCase non-letter first char is untouched (#4 D1)', () => {
+  assert.strictEqual(titleCase('(quoted) phrase'), '(quoted) Phrase');
+});
+
+// MANDATORY unicode-awareness regression guard (lesson from #6): an ASCII-only
+// [a-z] classifier would leave these first letters unmodified. Proof below:
+// Cyrillic lowercase first letters must become uppercase.
+test('titleCase Cyrillic words are capitalised (#4 unicode)', () => {
+  assert.strictEqual(titleCase('\u043f\u0440\u0438\u0432\u0435\u0442 \u043c\u0438\u0440'), '\u041f\u0440\u0438\u0432\u0435\u0442 \u041c\u0438\u0440');
+});
+// accented Latin first letters must be capitalised too
+test('titleCase accented Latin is capitalised (#4 unicode)', () => {
+  assert.strictEqual(titleCase('\u00e9l\u00e8ve \u00e0 c\u00f4t\u00e9'), '\u00c9l\u00e8ve \u00c0 C\u00f4t\u00e9');
+});
+// Greek and CJK sanity: doesn't throw, first letter raised where case exists
+test('titleCase Greek is capitalised (#4 unicode)', () => {
+  assert.strictEqual(titleCase('\u03b5\u03bb\u03bb\u03b7\u03bd\u03b9\u03ba\u03ac \u03b3\u03bb\u03ce\u03c3\u03c3\u03b1'), '\u0395\u03bb\u03bb\u03b7\u03bd\u03b9\u03ba\u03ac \u0393\u03bb\u03ce\u03c3\u03c3\u03b1');
+});
+test('titleCase CJK is left unchanged (no case) (#4 unicode)', () => {
+  assert.strictEqual(titleCase('\u4f60\u597d \u4e16\u754c'), '\u4f60\u597d \u4e16\u754c');
+});
+// stronger ASCII-only proof: an ASCII-only path would return the input verbatim
+test('titleCase non-Latin first letter actually changes (#4 unicode proof)', () => {
+  assert.notStrictEqual(titleCase('\u043f\u0440\u0438\u0432\u0435\u0442'), '\u043f\u0440\u0438\u0432\u0435\u0442');
+});
+
+// documented non-string rule: String(input) coercion, same as the other helpers
+test('titleCase number coerced via String(input) (#4)', () => assert.strictEqual(titleCase(42), '42'));
+test('titleCase null coerces to "null" then title-cases (#4)', () => assert.strictEqual(titleCase(null), 'Null'));
+test('titleCase undefined coerces to "undefined" (#4)', () => assert.strictEqual(titleCase(undefined), 'Undefined'));
+test('titleCase boolean coerces via String(input) (#4)', () => assert.strictEqual(titleCase(true), 'True'));
+
+// invariant: no leading/trailing spaces and no double spaces in the output
+test('titleCase output has no leading/trailing/double spaces (#4)', () => {
+  const out = titleCase('  a  b   c  ');
+  assert.strictEqual(out, out.trim());
+  assert.ok(!/\s\s/.test(out), `double space in ${JSON.stringify(out)}`);
+});
 
 // ticket #5: excerpt(text, maxLength) - word-boundary truncation that reuses truncate()
 // AC1: excerpt('the quick brown fox', 11) === 'the quick…' (no mid-word cut)

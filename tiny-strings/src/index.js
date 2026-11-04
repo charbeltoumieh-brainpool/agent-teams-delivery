@@ -36,6 +36,42 @@ function capitalize(input) {
 }
 
 /**
+ * titleCase('hello big world') -> 'Hello Big World'
+ * Whitespace runs are collapsed to a single space, leading/trailing whitespace
+ * is dropped, and the first character of every whitespace-delimited word is
+ * upper-cased. Remaining characters of each word are left untouched, so
+ * already-capitalised input is preserved. Empty / whitespace-only input
+ * yields ''.
+ *
+ * Letter classification is Unicode-aware: the first character of each word is
+ * upper-cased with String.prototype.toUpperCase, which folds accented Latin
+ * (e -> E-acute) and non-Latin scripts (Cyrillic, Greek, CJK) alike. No
+ * ASCII-only [a-z] class is used anywhere, so non-Latin input cannot silently
+ * fall through unmodified.
+ *
+ * Documented decisions:
+ *  - Whitespace is the only word separator. Hyphens and apostrophes are
+ *    word-internal, so "don't stop" -> "Don't Stop" and "well-known" ->
+ *    "Well-known" (only the first letter of the word is raised; titleCase
+ *    does NOT capitalise after an internal hyphen or apostrophe).
+ *  - A word whose first character is not a letter (a digit or punctuation)
+ *    keeps that character as-is: "3d printing" -> "3d Printing" and
+ *    "(quoted)" -> "(quoted)".
+ *
+ * Non-string input is coerced with String(input), matching the convention used
+ * by the other helpers (slugify, truncate, capitalize, wordCount); null /
+ * undefined therefore become 'null' / 'undefined' rather than throwing.
+ */
+function titleCase(input) {
+  const value = String(input).trim();
+  if (!value) return '';
+  return value
+    .split(/\s+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+/**
  * wordCount('a b c') -> 3
  *
  * Tokenisation rule (documented for ticket #6):
@@ -147,4 +183,4 @@ function excerpt(input, maxLength) {
   return truncate(value, limit);
 }
 
-module.exports = { slugify, truncate, capitalize, wordCount, isPalindrome, excerpt };
+module.exports = { slugify, truncate, capitalize, titleCase, wordCount, isPalindrome, excerpt };
